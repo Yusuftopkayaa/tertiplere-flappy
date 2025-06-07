@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flappy Yusuf</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #70c5ce; /* Eğer arka plan resmi yüklenmezse görünür */
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #70c5ce;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="480" height="640"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Resimler
+    const background = new Image();
+    background.src = 'background.jpg'; // Arka plan resmi
+
+    const birdImg = new Image();
+    birdImg.src = 'yusuf.png';  // Kuş resmi (senin yüzün)
+
+    // Kuşun özellikleri
+    const bird = {
+      x: 50,
+      y: 200,
+      width: 50,
+      height: 50,
+      gravity: 0.6,
+      lift: -10,
+      velocity: 0
+    };
+
+    // Engeller
+    const pipeWidth = 50;
+    const pipeGap = 150;
+    const pipeSpeed = 2;
+    let pipes = [];
+
+    function createPipe() {
+      let topHeight = Math.floor(Math.random() * (height - pipeGap - 100)) + 50;
+      let bottomY = topHeight + pipeGap;
+
+      pipes.push({
+        x: width,
+        top: topHeight,
+        bottom: bottomY,
+        width: pipeWidth,
+        passed: false
+      });
+    }
+
+    createPipe();
+
+    let score = 0;
+    let gameOver = false;
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Arka planı çiz
+      ctx.drawImage(background, 0, 0, width, height);
+
+      // Kuş hareketi
+      bird.velocity += bird.gravity;
+      bird.y += bird.velocity;
+
+      // Kuşu çiz
+      ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+
+      // Boruları çiz ve hareket ettir
+      for (let i = 0; i < pipes.length; i++) {
+        let p = pipes[i];
+
+        p.x -= pipeSpeed;
+
+        // Üst boru
+        ctx.fillStyle = 'green';
+        ctx.fillRect(p.x, 0, p.width, p.top);
+
+        // Alt boru
+        ctx.fillRect(p.x, p.bottom, p.width, height - p.bottom);
+
+        // Borular ekran dışına çıktıysa kaldır
+        if (p.x + p.width < 0) {
+          pipes.splice(i, 1);
+          i--;
+          createPipe();
+        }
+
+        // Skor kontrolü
+        if (!p.passed && p.x + p.width < bird.x) {
+          score++;
+          p.passed = true;
+        }
+
+        // Çarpışma kontrolü
+        if (
+          bird.x + bird.width > p.x &&
+          bird.x < p.x + p.width &&
+          (bird.y < p.top || bird.y + bird.height > p.bottom)
+        ) {
+          gameOver = true;
+        }
+      }
+
+      // Yerde veya tavanda ise oyun biter
+      if (bird.y + bird.height > height || bird.y < 0) {
+        gameOver = true;
+      }
+
+      // Skoru göster
+      ctx.fillStyle = 'white';
+      ctx.font = '24px Arial';
+      ctx.fillText('Skor: ' + score, 10, 30);
+
+      if (!gameOver) {
+        requestAnimationFrame(gameLoop);
+      } else {
+        ctx.fillStyle = 'red';
+        ctx.font = '48px Arial';
+        ctx.fillText('Oyun Bitti!', width / 2 - 120, height / 2);
+      }
+    }
+
+    // Boşluk tuşuna basınca kuş zıplar
+    window.addEventListener('keydown', function (e) {
+      if (e.code === 'Space' || e.key === ' ') {
+        bird.velocity = bird.lift;
+        if (gameOver) {
+          // Oyun bitti ise yeniden başlat
+          bird.y = 200;
+          bird.velocity = 0;
+          pipes = [];
+          createPipe();
+          score = 0;
+          gameOver = false;
+          gameLoop();
+        }
+      }
+    });
+
+    // Oyun başlat
+    background.onload = function () {
+      birdImg.onload = function () {
+        gameLoop();
+      };
+    };
+  </script>
+</body>
+</html>
